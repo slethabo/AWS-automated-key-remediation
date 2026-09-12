@@ -1,0 +1,18 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored.
+
+aws_region   = "us-east-1"
+project_name = "key-remediation"
+
+# Only findings at or above this severity are remediated automatically.
+guardduty_min_severity = 7
+
+# Never auto-deactivate keys belonging to these users.
+exempt_user_names = ["break-glass-admin"]
+
+# Set true only if GuardDuty is not already enabled in this account.
+enable_guardduty_detector = false
+
+tags = {
+  Owner       = "security"
+  Environment = "lab"
+}

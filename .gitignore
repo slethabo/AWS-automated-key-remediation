@@ -9,3 +9,12 @@ build/
 dist/
 *.zip
 .env
+
+# Terraform
+infra/.terraform/
+infra/.build/
+infra/.terraform.lock.hcl
+infra/terraform.tfvars
+*.tfstate
+*.tfstate.*
+*.tfplan
