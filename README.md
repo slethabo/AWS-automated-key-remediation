@@ -14,8 +14,26 @@ src/
   key_remediation/
     core.py                 Validation, owner lookup, deactivation
     cli.py                  Manual CLI: python -m key_remediation.cli AKIA...
+infra/                      Terraform: Lambda, least-privilege role, EventBridge
+                            rules for GuardDuty + AWS Health, SQS dead-letter queue
 tests/                      pytest + moto (no AWS account needed)
-.github/workflows/ci.yml    Lint, test on Python 3.12/3.13, build Lambda zip
+.github/workflows/ci.yml    Lint, test on Python 3.12/3.13, terraform validate,
+                            build Lambda zip
+```
+
+## Architecture
+
+```mermaid
+flowchart LR
+    GD[GuardDuty finding<br/>IAMUser access key<br/>severity >= 7] --> R1[EventBridge rule<br/>type allowlist<br/>user exemptions]
+    AH[AWS Health<br/>CREDENTIALS_EXPOSED] --> R2[EventBridge rule]
+    R1 -- "{access_key_id}" --> L[Lambda<br/>key_remediation]
+    R2 -- "{access_key_id}" --> L
+    L -->|GetAccessKeyLastUsed| IAM[(IAM)]
+    L -->|UpdateAccessKey Inactive| IAM
+    L -. failures .-> DLQ[SQS dead-letter queue]
+    R1 -. undeliverable .-> DLQ
+    R2 -. undeliverable .-> DLQ
 ```
 
 ## How it works
@@ -67,8 +85,22 @@ Minimum IAM policy for the execution role:
 }
 ```
 
-Deploy by zipping the contents of `src/` (CI produces this artifact on every
-green run of `main`). `boto3` is provided by the Lambda runtime.
+## Deploy
+
+```
+cd infra
+cp terraform.tfvars.example terraform.tfvars   # set exempt_user_names etc.
+terraform init && terraform apply
+```
+
+This creates the function, its role, log group, dead-letter queue, and the
+EventBridge rules that wire GuardDuty and AWS Health findings into it. See
+[`infra/README.md`](infra/README.md) for every resource, the built-in
+guardrails, and how to fire a sample GuardDuty finding to test the pipeline.
+
+CI also produces a plain zip of `src/` as an artifact on every green run of
+`main` if you prefer to deploy by hand. `boto3` is provided by the Lambda
+runtime.
 
 ## CLI
 
@@ -98,8 +130,9 @@ account. Restrict `lambda:InvokeFunction` on it to the detection pipeline
 
 ## Roadmap
 
-- Trigger from `AWS_RISK_CREDENTIALS_EXPOSED` Health events and GuardDuty
-  findings via EventBridge
-- Pull the key's recent CloudTrail activity into a forensic report
-- Notify via SNS and record every action for audit
-- Terraform for the Lambda, role, and EventBridge rules
+- Parse GuardDuty and Health events natively in the handler so Health
+  events listing several exposed keys remediate all of them
+- Pull the key's recent CloudTrail activity into a forensic report in S3
+- Notify via SNS and record every action in DynamoDB for audit
+- Attack lab: Terraform for a victim user plus Stratus Red Team runbook to
+  generate real findings and measure time to remediation
