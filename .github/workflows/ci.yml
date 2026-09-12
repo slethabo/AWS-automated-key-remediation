@@ -9,6 +9,18 @@ permissions:
   contents: read
 
 jobs:
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # scan the full history, not just the latest commit
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -56,7 +68,7 @@ jobs:
 
   package:
     name: Build Lambda artifact
-    needs: [lint, test, terraform]
+    needs: [secrets, lint, test, terraform]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

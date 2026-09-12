@@ -10,6 +10,13 @@ dist/
 *.zip
 .env
 
+# Documents and write-ups never belong in this repo (a PDF with credential-like
+# data was once committed here). Publish write-ups as a blog post or release asset.
+*.pdf
+*.docx
+*.pptx
+*.xlsx
+
 # Terraform
 infra/.terraform/
 infra/.build/

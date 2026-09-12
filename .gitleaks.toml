@@ -1,0 +1,19 @@
+# gitleaks configuration — https://github.com/gitleaks/gitleaks
+# Extends the default ruleset and allowlists the fake key IDs used in tests.
+# Run locally with:  gitleaks git --config .gitleaks.toml
+title = "AWS automated key remediation"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented example / obviously fake AWS access key IDs used in unit tests"
+regexes = [
+  '''AKIAIOSFODNN7EXAMPLE''',   # AWS documentation example key
+  '''ASIAIOSFODNN7EXAMPLE''',   # same, temporary-credential prefix (rejected-input test)
+  '''AKIA0123456789ABCDEF''',
+  '''AKIAZZZZZZZZZZZZZZZZ''',
+]
+paths = [
+  '''\.gitleaks\.toml$''',
+]
